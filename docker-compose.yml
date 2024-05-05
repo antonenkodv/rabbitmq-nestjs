@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  producer:
+    build:
+      context: ./producer`
+      dockerfile: Dockerfile
+    ports:
+      - '4000:4000'
+    env_file:
+      - './producer/.env'
+    volumes:
+      - producer_data:/app/data
+    networks:
+      - rabbitmq_nestjs
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    env_file:
+      - './consumer/.env'
+    volumes:
+      - consumer_data:/app/data
+    networks:
+      - rabbitmq_nestjs
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:management
+    hostname: rabbitmq-dev
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - rabbitmq_nestjs
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      retries: 20
+
+volumes:
+  rabbitmq_data:
+  producer_data:
+  consumer_data:
+
+networks:
+  rabbitmq_nestjs:
+    driver: bridge
